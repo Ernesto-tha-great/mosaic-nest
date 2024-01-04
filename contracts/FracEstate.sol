@@ -87,4 +87,57 @@ contract FracEstate is ERC4626, Ownable {
     }
 
     /// accounting functions
+    function totalAssets() public virtual override vaultActive returns (uint256) {
+        return asset_.balanceOf(address(this));
+    }
+
+    function convertToShares(uint256 assets) public view virtual override vaultActive returns (uint256) {
+        uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
+
+        return supply == 0 ? assets : assets.mulDivDown(supply, totalAssets());
+    }
+
+    function convertToAssets(uint256 shares) public view virtual override vaultActive returns (uint256) {
+        uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
+
+        return supply == 0 ? shares : shares.mulDivDown(totalAssets(), supply);
+    }
+
+    function previewDeposit(uint256 assets) public view virtual override vaultActive returns (uint256) {
+        return convertToShares(assets);
+    }
+
+    function previewMint(uint256 shares) public view virtual override vaultActive returns (uint256) {
+        uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
+
+        return supply == 0 ? shares : shares.mulDivUp(totalAssets(), supply);
+    }
+
+    function previewWithdraw(uint256 assets) public view virtual override vaultActive returns (uint256) {
+        uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
+
+        return supply == 0 ? assets : assets.mulDivUp(supply, totalAssets());
+    }
+
+    function previewRedeem(uint256 shares) public view virtual override vaultActive returns (uint256) {
+        return convertToAssets(shares);
+    }
+
+    /// deposit/withdrawal limit logic
+
+    function maxDeposit(address) public view virtual override vaultActive returns (uint256) {
+        return type(uint256).max;
+    }
+
+    function maxMint(address) public view virtual override vaultActive returns (uint256) {
+        return type(uint256).max;
+    }
+
+    function maxWithdraw(address owner) public view virtual override vaultActive returns (uint256) {
+        return convertToAssets(balanceOf[owner]);
+    }
+
+    function maxRedeem(address owner) public view virtual override vaultActive returns (uint256) {
+        return balanceOf[owner];
+    }
 }
